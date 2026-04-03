@@ -1,25 +1,469 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Travel Alerts</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US Embassy Alert Tracker — Central Asia &amp; Caucasus</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.18);
+    --text: #1a1a18;
+    --text-muted: #6b6b65;
+    --text-hint: #9e9e96;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --blue-dark: #0C447C;
+    --blue-mid: #378ADD;
+    --amber: #854F0B;
+    --amber-light: #FAEEDA;
+    --amber-mid: #BA7517;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .header-left { display: flex; align-items: center; gap: 14px; }
+
+  .flag-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(180deg, #B22234 33%, #fff 33%, #fff 66%, #B22234 66%);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .flag-icon::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 40%; height: 55%;
+    background: #3C3B6E;
+  }
+
+  .header-title { font-size: 17px; font-weight: normal; letter-spacing: 0.01em; color: var(--text); }
+  .header-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; font-family: 'Arial', sans-serif; }
+
+  #search {
+    padding: 6px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-family: 'Arial', sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    width: 180px;
+    outline: none;
+  }
+  #search:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
+
+  .legend {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    padding: 8px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'Arial', sans-serif;
+  }
+  .leg { display: flex; align-items: center; gap: 6px; }
+  .legdot { width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0; }
+
+  .main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .sidebar {
+    width: 230px;
+    flex-shrink: 0;
+    overflow-y: auto;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    height: calc(100vh - 108px);
+  }
+
+  .sec-hdr {
+    font-size: 10px;
+    font-weight: bold;
+    color: var(--text-muted);
+    padding: 8px 12px 5px;
+    background: var(--surface2);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 1;
+    font-family: 'Arial', sans-serif;
+  }
+
+  .citem {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    border-left: 2px solid transparent;
+  }
+  .citem:hover { background: var(--surface2); }
+  .citem.active { background: var(--blue-light); border-left-color: var(--blue); }
+  .citem.hidden { display: none; }
+
+  .cname { font-size: 13px; color: var(--text); flex: 1; line-height: 1.3; font-family: 'Arial', sans-serif; }
+  .cbadge { font-size: 10px; padding: 2px 5px; border-radius: 3px; font-weight: bold; flex-shrink: 0; font-family: 'Arial', sans-serif; }
+  .ca-badge  { background: var(--blue-light);   color: var(--blue-dark); }
+  .cau-badge { background: var(--amber-light);  color: var(--amber); }
+
+  .mapside {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--bg);
+  }
+
+  .infobar {
+    padding: 12px 18px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    min-height: 78px;
+  }
+
+  .info-name { font-size: 16px; color: var(--text); }
+  .info-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; font-family: 'Arial', sans-serif; }
+  .info-links { display: flex; gap: 7px; margin-top: 8px; flex-wrap: wrap; }
+
+  .lnk {
+    font-size: 12px; padding: 4px 11px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    text-decoration: none;
+    background: var(--surface);
+    font-family: 'Arial', sans-serif;
+    transition: background 0.1s;
+  }
+  .lnk:hover { background: var(--surface2); }
+  .lnk.pri { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .lnk.pri:hover { background: var(--blue-dark); }
+
+  #mapwrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+  #mapwrap svg {
+    display: block; width: 100%; height: 100%;
+    min-height: 500px;
+    cursor: grab;
+  }
+  #mapwrap svg:active { cursor: grabbing; }
+
+  .cpath { stroke: #fff; stroke-width: 0.4; transition: opacity 0.12s; cursor: pointer; }
+  .cpath:hover { opacity: 0.72; }
+  .cpath.sel { stroke: #d45f00; stroke-width: 2; opacity: 1; }
+  .cpath.dimmed { opacity: 0.28; }
+  .cpath.untracked { cursor: default; }
+
+  #tt {
+    position: absolute; pointer-events: none;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 5px 10px;
+    font-size: 12px; color: var(--text);
+    white-space: nowrap; display: none; z-index: 10;
+    font-family: 'Arial', sans-serif;
+  }
+
+  .zbtns {
+    position: absolute; bottom: 14px; right: 14px;
+    display: flex; flex-direction: column; gap: 4px; z-index: 5;
+  }
+  .zbtn {
+    width: 30px; height: 30px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 17px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+    font-family: 'Arial', sans-serif;
+  }
+  .zbtn:hover { background: var(--surface2); }
+  .zbtn.reset { font-size: 13px; }
+
+  .zhint {
+    position: absolute; bottom: 14px; left: 12px;
+    font-size: 11px; color: var(--text-hint);
+    pointer-events: none;
+    font-family: 'Arial', sans-serif;
+  }
+
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 8px 24px;
+    font-size: 11px;
+    color: var(--text-hint);
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  @media (max-width: 700px) {
+    .main { flex-direction: column; }
+    .sidebar { width: 100%; height: 220px; border-right: none; border-bottom: 1px solid var(--border); }
+    #search { width: 140px; }
+  }
+</style>
 </head>
 <body>
-    <header>
-        <h1>Welcome to the Central Asia Embassy Travel Alerts</h1>
-    </header>
-    <main>
-        <section>
-            <h2>Current Alerts</h2>
-            <ul id="alerts">
-                <li>No alerts at this time.</li>
-            </ul>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2026 Central Asia Embassy</p>
-    </footer>
+
+<header>
+  <div class="header-left">
+    <div class="flag-icon"></div>
+    <div>
+      <div class="header-title">US Embassy Alert Tracker — Central Asia &amp; Caucasus</div>
+      <div class="header-sub">12 countries · real-time links to official embassy alerts</div>
+    </div>
+  </div>
+  <input id="search" type="text" placeholder="Search country...">
+</header>
+
+<div class="legend">
+  <div class="leg"><div class="legdot" style="background:#378ADD"></div>Central Asia</div>
+  <div class="leg"><div class="legdot" style="background:#BA7517"></div>Caucasus</div>
+  <div class="leg"><div class="legdot" style="background:#C0BEB4"></div>Not tracked</div>
+</div>
+
+<div class="main">
+  <div class="sidebar" id="sidebar"></div>
+  <div class="mapside">
+    <div class="infobar" id="infobar">
+      <div class="info-name" style="color:#9e9e96">Select a country</div>
+      <div class="info-sub">Click any country on the map or in the list for direct embassy alert links</div>
+    </div>
+    <div id="mapwrap">
+      <div id="tt"></div>
+      <div class="zbtns">
+        <button class="zbtn" id="zin" title="Zoom in">+</button>
+        <button class="zbtn" id="zout" title="Zoom out">−</button>
+        <button class="zbtn reset" id="zrst" title="Reset view">⌂</button>
+      </div>
+      <div class="zhint">Scroll to zoom · drag to pan</div>
+      <svg id="mapsvg" viewBox="0 0 800 560" preserveAspectRatio="xMidYMid meet">
+        <g id="mg"></g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>Links go directly to official US Embassy alert archives — updated in real time by each embassy.</span>
+  <span>Data: Natural Earth 50m · TopoJSON world-atlas v2</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+// region: "ca" = Central Asia, "cau" = Caucasus
+const COUNTRIES = [
+  // ── Central Asia ─────────────────────────────────────────────────────────
+  {name:"Afghanistan",  region:"ca",  id:"004", alert:"https://af.usembassy.gov/category/alert/",  home:"https://af.usembassy.gov/"},
+  {name:"Kazakhstan",   region:"ca",  id:"398", alert:"https://kz.usembassy.gov/category/alert/",  home:"https://kz.usembassy.gov/"},
+  {name:"Kyrgyzstan",   region:"ca",  id:"417", alert:"https://kg.usembassy.gov/category/alert/",  home:"https://kg.usembassy.gov/"},
+  {name:"Mongolia",     region:"ca",  id:"496", alert:"https://mn.usembassy.gov/category/alert/",  home:"https://mn.usembassy.gov/"},
+  {name:"Tajikistan",   region:"ca",  id:"762", alert:"https://tj.usembassy.gov/category/alert/",  home:"https://tj.usembassy.gov/"},
+  {name:"Turkmenistan", region:"ca",  id:"795", alert:"https://tm.usembassy.gov/category/alert/",  home:"https://tm.usembassy.gov/"},
+  {name:"Uzbekistan",   region:"ca",  id:"860", alert:"https://uz.usembassy.gov/category/alert/",  home:"https://uz.usembassy.gov/"},
+  // ── Caucasus ─────────────────────────────────────────────────────────────
+  {name:"Armenia",      region:"cau", id:"051", alert:"https://am.usembassy.gov/category/alert/",  home:"https://am.usembassy.gov/"},
+  {name:"Azerbaijan",   region:"cau", id:"031", alert:"https://az.usembassy.gov/category/alert/",  home:"https://az.usembassy.gov/"},
+  {name:"Georgia",      region:"cau", id:"268", alert:"https://ge.usembassy.gov/category/alert/",  home:"https://ge.usembassy.gov/"},
+  // ── Adjacent / commonly tracked ──────────────────────────────────────────
+  {name:"Iran",         region:"ca",  id:"364", alert:"https://ir.usembassy.gov/category/alert/",  home:"https://ir.usembassy.gov/"},
+  {name:"Pakistan",     region:"ca",  id:"586", alert:"https://pk.usembassy.gov/category/alert/",  home:"https://pk.usembassy.gov/"},
+];
+
+const byId = {};
+COUNTRIES.forEach(c => byId[c.id] = c);
+
+const TRAVEL = "https://travel.state.gov/content/travel/en/traveladvisories/traveladvisories.html/";
+let selected = null;
+let currentK = 1;
+
+const REGION_LABEL = { ca: "Central Asia", cau: "Caucasus" };
+const REGION_FILL  = { ca: "#378ADD",       cau: "#BA7517" };
+const BADGE_CLASS  = { ca: "ca-badge",      cau: "cau-badge" };
+
+function renderSidebar(filter) {
+  const sb = document.getElementById('sidebar');
+  const q = (filter || '').toLowerCase();
+  const ca  = COUNTRIES.filter(c => c.region === "ca").sort((a,b) => a.name.localeCompare(b.name));
+  const cau = COUNTRIES.filter(c => c.region === "cau").sort((a,b) => a.name.localeCompare(b.name));
+
+  let html = '<div class="sec-hdr">Central Asia (' + ca.length + ')</div>';
+  ca.forEach(c => {
+    const hide = q && !c.name.toLowerCase().includes(q) ? ' hidden' : '';
+    const act  = selected && selected.id === c.id ? ' active' : '';
+    html += `<div class="citem${act}${hide}" data-id="${c.id}"><span class="cname">${c.name}</span><span class="cbadge ca-badge">C. Asia</span></div>`;
+  });
+  html += '<div class="sec-hdr">Caucasus (' + cau.length + ')</div>';
+  cau.forEach(c => {
+    const hide = q && !c.name.toLowerCase().includes(q) ? ' hidden' : '';
+    const act  = selected && selected.id === c.id ? ' active' : '';
+    html += `<div class="citem${act}${hide}" data-id="${c.id}"><span class="cname">${c.name}</span><span class="cbadge cau-badge">Caucasus</span></div>`;
+  });
+
+  sb.innerHTML = html;
+  sb.querySelectorAll('.citem').forEach(el => el.addEventListener('click', () => selectCountry(el.dataset.id, true)));
+}
+
+function updateInfobar() {
+  const ib = document.getElementById('infobar');
+  if (!selected) {
+    ib.innerHTML = `<div class="info-name" style="color:#9e9e96">Select a country</div><div class="info-sub">Click any country on the map or in the list for direct embassy alert links</div>`;
+    return;
+  }
+  const c = selected;
+  const yr = new Date().getFullYear();
+  ib.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div>
+        <div class="info-name">${c.name}</div>
+        <div class="info-sub">${REGION_LABEL[c.region]} &middot; ${c.home.replace('https://','').split('/')[0]}</div>
+      </div>
+    </div>
+    <div class="info-links">
+      <a class="lnk pri" href="${c.alert}" target="_blank" rel="noopener">Latest alerts</a>
+      <a class="lnk" href="${c.home}" target="_blank" rel="noopener">Embassy home</a>
+      <a class="lnk" href="${TRAVEL}" target="_blank" rel="noopener">State Dept advisory</a>
+      <a class="lnk" href="https://www.google.com/search?q=US+embassy+${encodeURIComponent(c.name)}+security+alert+${yr}" target="_blank" rel="noopener">Search ${yr} alerts</a>
+    </div>`;
+}
+
+function selectCountry(id, scrollSidebar) {
+  selected = byId[id] || null;
+  renderSidebar(document.getElementById('search').value);
+  updateInfobar();
+  d3.selectAll('.cpath')
+    .classed('sel',    d => d.id === id)
+    .classed('dimmed', d => !!selected && d.id !== id && !!byId[d.id]);
+  if (scrollSidebar && selected) {
+    const el = document.querySelector(`.citem[data-id="${id}"]`);
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+document.getElementById('search').addEventListener('input', function () { renderSidebar(this.value); });
+
+// ── Map setup ───────────────────────────────────────────────────────────────
+const svg     = d3.select('#mapsvg');
+const g       = d3.select('#mg');
+const W = 800, H = 560;
+
+// Centre on Central Asia / Caucasus region
+const proj = d3.geoMercator()
+  .center([63, 42])
+  .scale(620)
+  .translate([W / 2, H / 2]);
+
+const pathGen = d3.geoPath(proj);
+
+const zoom = d3.zoom().scaleExtent([0.6, 14]).on('zoom', event => {
+  currentK = event.transform.k;
+  g.attr('transform', event.transform);
+  g.selectAll('.cpath').attr('stroke-width', d => {
+    const isSel = selected && d.id === selected.id;
+    return (isSel ? 2 : 0.4) / currentK;
+  });
+});
+
+svg.call(zoom);
+svg.on('click', function (event) {
+  if (event.target === this || event.target.tagName === 'svg') {
+    selected = null;
+    renderSidebar(document.getElementById('search').value);
+    updateInfobar();
+    d3.selectAll('.cpath').classed('sel', false).classed('dimmed', false);
+  }
+});
+
+document.getElementById('zin').addEventListener('click',  () => svg.transition().duration(280).call(zoom.scaleBy, 1.5));
+document.getElementById('zout').addEventListener('click', () => svg.transition().duration(280).call(zoom.scaleBy, 0.67));
+document.getElementById('zrst').addEventListener('click', () => svg.transition().duration(380).call(zoom.transform, d3.zoomIdentity));
+
+const tt = document.getElementById('tt');
+const mw = document.getElementById('mapwrap');
+
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json').then(world => {
+  const features = topojson.feature(world, world.objects.countries).features;
+
+  g.selectAll('path')
+    .data(features)
+    .join('path')
+    .attr('class', d => 'cpath' + (byId[d.id] ? '' : ' untracked'))
+    .attr('fill', d => {
+      const c = byId[d.id];
+      if (!c) return '#C0BEB4';
+      return REGION_FILL[c.region];
+    })
+    .attr('d', pathGen)
+    .on('mousemove', function (event, d) {
+      const c = byId[d.id];
+      if (!c) { tt.style.display = 'none'; return; }
+      const rect = mw.getBoundingClientRect();
+      tt.style.display = 'block';
+      tt.style.left = (event.clientX - rect.left + 14) + 'px';
+      tt.style.top  = (event.clientY - rect.top  - 36) + 'px';
+      tt.textContent = c.name + ' · ' + REGION_LABEL[c.region];
+    })
+    .on('mouseleave', () => { tt.style.display = 'none'; })
+    .on('click', function (event, d) {
+      event.stopPropagation();
+      if (!byId[d.id]) return;
+      selectCountry(d.id, true);
+    });
+
+  g.selectAll('.untracked').style('cursor', 'default');
+
+}).catch(() => {
+  document.getElementById('mapwrap').innerHTML =
+    '<div style="padding:2rem;color:#9e9e96;font-size:13px;font-family:Arial,sans-serif">Map topology could not load. Requires an internet connection to fetch Natural Earth map data from cdn.jsdelivr.net.</div>';
+});
+
+renderSidebar('');
+updateInfobar();
+</script>
 </body>
 </html>
